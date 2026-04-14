@@ -2,6 +2,8 @@ node_modules
 .DS_Store
 .env
 .env.*
+!.env.example
+!**/.env.example
 dist
 build
 .next
@@ -10,4 +12,3 @@ coverage
 artifacts
 cache
 typechain-types
-

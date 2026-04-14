@@ -20,6 +20,14 @@ const NavItem = ({ href, label }: { href: string; label: string }) => {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const chainScanBase = process.env.OG_CHAINSCAN_BASE_URL ?? "https://chainscan-galileo.0g.ai";
+  const explorerContract =
+    process.env.ARGOS_GATEWAY_ADDRESS ||
+    process.env.NEXT_PUBLIC_ENTRYPOINT_ADDRESS ||
+    process.env.NEXT_PUBLIC_FACTORY_ADDRESS ||
+    "";
+  const explorerHref = explorerContract ? `${chainScanBase}/address/${explorerContract}` : `${chainScanBase}/`;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
       <aside className="md:sticky md:top-6 h-fit rounded-xl border border-black/10 p-3">
@@ -33,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NavItem href="/dashboard/approvals" label="Device approvals" />
           <NavItem href="/dashboard/audit" label="Audit log" />
           <div className="mt-2 border-t border-black/10 pt-2" />
-          <NavItem href="https://chainscan-galileo.0g.ai" label="0G Explorer" />
+          <NavItem href={explorerHref} label="0G Explorer" />
         </nav>
       </aside>
 
