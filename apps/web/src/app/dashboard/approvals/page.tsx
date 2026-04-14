@@ -19,10 +19,10 @@ type RequestStatus =
 
 export default function DeviceApprovalsPage() {
   const [deviceId, setDeviceId] = useState("device-001");
-  const [title, setTitle] = useState("Approve UserOperation");
-  const [details1, setDetails1] = useState("Transfer: 0.2 0G");
-  const [details2, setDetails2] = useState("To: 0x...");
-  const [userOpHash, setUserOpHash] = useState("0x");
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [address, setAddress] = useState("");
+  const [userOpHash, setUserOpHash] = useState("");
 
   const [requestId, setRequestId] = useState<string | null>(null);
   const [status, setStatus] = useState<RequestStatus | null>(null);
@@ -36,7 +36,13 @@ export default function DeviceApprovalsPage() {
     const res = await fetch("/api/requests/new", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ deviceId, title, details1, details2, userOpHash })
+      body: JSON.stringify({
+        deviceId,
+        title: title || "Approve transaction",
+        details1: amount,
+        details2: address,
+        userOpHash
+      })
     });
     const json = await res.json();
     setRequestId(json.requestId);
@@ -121,6 +127,7 @@ export default function DeviceApprovalsPage() {
               className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-accent"
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
+              placeholder="device-001"
             />
           </label>
           <label className="space-y-1">
@@ -129,22 +136,25 @@ export default function DeviceApprovalsPage() {
               className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-accent"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Approve transaction"
             />
           </label>
           <label className="space-y-1">
-            <div className="text-xs font-medium text-black/60">Details line 1</div>
+            <div className="text-xs font-medium text-black/60">Amount</div>
             <input
               className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-accent"
-              value={details1}
-              onChange={(e) => setDetails1(e.target.value)}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.001 0G"
             />
           </label>
           <label className="space-y-1">
-            <div className="text-xs font-medium text-black/60">Details line 2</div>
+            <div className="text-xs font-medium text-black/60">Address</div>
             <input
               className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-accent"
-              value={details2}
-              onChange={(e) => setDetails2(e.target.value)}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="0xRecipient..."
             />
           </label>
         </div>
@@ -155,7 +165,7 @@ export default function DeviceApprovalsPage() {
             className="w-full rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-accent font-mono text-xs"
             value={userOpHash}
             onChange={(e) => setUserOpHash(e.target.value)}
-            placeholder="0x..."
+            placeholder="0x + 64 hex chars"
           />
           <div className="text-[11px] text-black/50">
             MVP: paste any 32-byte hash. Next step: compute it from a real UserOperation using EntryPoint.
