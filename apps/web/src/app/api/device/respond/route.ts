@@ -29,57 +29,61 @@ export async function POST(req: Request) {
   rec.status = "approved";
   rec.deviceSignature = deviceSignature;
 
-  // Optional: publish on-chain approval to ArgosGateway (no-bundler mode).
-  // Enabled by setting: ARGOS_GATEWAY_ADDRESS + RELAYER_PRIVATE_KEY.
-  try {
-    const gateway = process.env.ARGOS_GATEWAY_ADDRESS ?? "";
-    const relayerPk = process.env.RELAYER_PRIVATE_KEY ?? "";
-    const rpcUrl = process.env.OG_RPC_URL ?? "https://evmrpc-testnet.0g.ai";
-    if (gateway && relayerPk && rec.actionHash) {
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      const signer = new ethers.Wallet(relayerPk, provider);
-      const gw = new ethers.Contract(
-        gateway,
-        ["function approve(bytes32 requestKey, bytes32 actionHash, bytes deviceSignature)"],
-        signer
-      );
-      const requestKey = ethers.keccak256(ethers.toUtf8Bytes(requestId));
-      const tx = await gw.approve(requestKey, rec.actionHash, deviceSignature);
-      rec.aaTxHash = tx.hash;
-      rec.aaStatus = "sent";
+  // Persist immediately so the UI updates quickly, then do slow integrations async.
+  const store = getStore();
+  store.set(requestId, rec);
+
+  // Fire-and-forget background work:
+  // - ArgosGateway approve tx (no-bundler mode)
+  // - 0G Storage upload
+  void (async () => {
+    // Optional: publish on-chain approval to ArgosGateway (no-bundler mode).
+    try {
+      const gateway = process.env.ARGOS_GATEWAY_ADDRESS ?? "";
+      const relayerPk = process.env.RELAYER_PRIVATE_KEY ?? "";
+      const rpcUrl = process.env.OG_RPC_URL ?? "https://evmrpc-testnet.0g.ai";
+      if (gateway && relayerPk && rec.actionHash) {
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const signer = new ethers.Wallet(relayerPk, provider);
+        const gw = new ethers.Contract(
+          gateway,
+          ["function approve(bytes32 requestKey, bytes32 actionHash, bytes deviceSignature)"],
+          signer
+        );
+        const requestKey = ethers.keccak256(ethers.toUtf8Bytes(requestId));
+        const tx = await gw.approve(requestKey, rec.actionHash, deviceSignature);
+        rec.aaTxHash = tx.hash;
+        rec.aaStatus = "sent";
+        store.set(requestId, rec);
+      }
+    } catch (e) {
+      console.error("ArgosGateway approve failed:", e);
     }
-  } catch (e) {
-    console.error("ArgosGateway approve failed:", e);
-  }
 
-  // Optional: persist the approval proof in 0G Storage (server-side).
-  // Enable by setting STORAGE_SIGNER_PRIVATE_KEY in apps/web/.env
-  try {
-    const upload = await uploadJsonTo0GStorage({
-      type: "0gargos_device_approval",
-      deviceId,
-      requestId,
-      approved: true,
-      userOpHash,
-      deviceSignature,
-      actionTarget: rec.actionTarget,
-      actionValueWei: rec.actionValueWei,
-      actionData: rec.actionData,
-      actionHash: rec.actionHash,
-      ts: Date.now()
-    });
-    if (upload?.rootHash) rec.storageRootHash = upload.rootHash;
-    if (upload?.txHash) rec.storageTxHash = upload.txHash;
-  } catch (e) {
-    // Don't fail the approval flow if Storage upload fails in MVP.
-    console.error("0G Storage upload failed:", e);
-  }
+    // Optional: persist the approval proof in 0G Storage (server-side).
+    try {
+      const upload = await uploadJsonTo0GStorage({
+        type: "0gargos_device_approval",
+        deviceId,
+        requestId,
+        approved: true,
+        userOpHash,
+        deviceSignature,
+        actionTarget: rec.actionTarget,
+        actionValueWei: rec.actionValueWei,
+        actionData: rec.actionData,
+        actionHash: rec.actionHash,
+        ts: Date.now()
+      });
+      if (upload?.rootHash) rec.storageRootHash = upload.rootHash;
+      if (upload?.txHash) rec.storageTxHash = upload.txHash;
+      store.set(requestId, rec);
+    } catch (e) {
+      // Don't fail the approval flow if Storage upload fails in MVP.
+      console.error("0G Storage upload failed:", e);
+    }
+  })();
 
-  getStore().set(requestId, rec);
-  return NextResponse.json({
-    ok: true,
-    status: "approved",
-    storageRootHash: rec.storageRootHash ?? null,
-    storageTxHash: rec.storageTxHash ?? null
-  });
+  // Respond fast so the device doesn't time out (HTTPClient -11 = read timeout).
+  return NextResponse.json({ ok: true, status: "approved" });
 }

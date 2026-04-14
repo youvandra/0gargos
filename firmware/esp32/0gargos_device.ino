@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
+#include <esp_system.h>
 
 // === Pin mapping (provided) ===
 #define TFT_CS   15
@@ -67,12 +68,17 @@ void drawStatus(const char* title, const char* line1 = "", const char* line2 = "
 }
 
 bool waitForButtonPress() {
-  // Active LOW
+  // Active LOW. Returns true only on a clean press+release.
   if (digitalRead(BTN_PIN) == HIGH) return false;
-  delay(35);
+  delay(25);
   if (digitalRead(BTN_PIN) == HIGH) return false;
-  while (digitalRead(BTN_PIN) == LOW) delay(10);
-  delay(35);
+  // Wait release
+  uint32_t t0 = millis();
+  while (digitalRead(BTN_PIN) == LOW) {
+    if (millis() - t0 > 2000) break; // safety: don't block forever on stuck button
+    delay(5);
+  }
+  delay(25);
   return true;
 }
 
@@ -84,6 +90,8 @@ String shortenHex(const String& hex, int head = 8, int tail = 6) {
 bool httpGetJson(const String& url, JsonDocument& doc) {
   HTTPClient http;
   http.begin(url);
+  http.setReuse(false);
+  http.setTimeout(8000);
   int code = http.GET();
   if (code != 200) {
     http.end();
@@ -98,6 +106,8 @@ bool httpGetJson(const String& url, JsonDocument& doc) {
 bool httpPostJson(const String& url, const JsonDocument& body, JsonDocument& resp, int* outCode) {
   HTTPClient http;
   http.begin(url);
+  http.setReuse(false);
+  http.setTimeout(15000);
   http.addHeader("Content-Type", "application/json");
   String out;
   serializeJson(body, out);
@@ -112,6 +122,22 @@ bool httpPostJson(const String& url, const JsonDocument& body, JsonDocument& res
   // Best-effort parsing. Even if parsing fails, HTTP 2xx means "sent".
   deserializeJson(resp, payload);
   return true;
+}
+
+String httpCodeHint(int code) {
+  if (code == -11) return "Timeout";
+  return "";
+}
+
+void shufflePattern(int* arr, int n) {
+  // Fisher–Yates using esp_random()
+  for (int i = n - 1; i > 0; i--) {
+    uint32_t r = esp_random();
+    int j = (int)(r % (uint32_t)(i + 1));
+    int tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
 }
 
 void setup() {
@@ -180,8 +206,10 @@ void loop() {
   tft.print("Hash: ");
   tft.println(shortenHex(String(userOpHash)));
 
-  // Require sequence approval pattern: 3-4-1-2
-  const int pattern[4] = {3, 4, 1, 2};
+  // Captcha-like sequence: digits 1..4 in random order.
+  // User must press the button N times for each digit tile (without tapping too fast).
+  int pattern[4] = {1, 2, 3, 4};
+  shufflePattern(pattern, 4);
   const int len = 4;
 
   auto drawPattern = [&](int currentIdx, int currentCount, int targetCount) {
@@ -211,37 +239,50 @@ void loop() {
     }
   };
 
-  // Instruction
+  // Instruction (do not reveal exact step counts)
   tft.setTextSize(1);
   tft.setTextColor(ST77XX_WHITE);
   tft.setCursor(10, 144);
-  tft.print("Confirm sequence: 3-4-1-2");
+  tft.print("Confirm sequence on device");
+
+  const uint32_t PRESS_COOLDOWN_MS = 650;  // taps faster than this => cancel
+  const uint32_t STEP_SETTLE_MS = 400;     // small lock between steps
 
   for (int idx = 0; idx < len; idx++) {
     int target = pattern[idx];
     int count = 0;
+    uint32_t lockUntil = 0;
 
     // redraw pattern area
     tft.fillRect(0, 152, SCREEN_W, 88, ST77XX_BLACK);
     drawPattern(idx, count, target);
 
-    // Step prompt
-    tft.fillRect(0, 136, SCREEN_W, 14, ST77XX_BLACK);
-    tft.setCursor(10, 136);
-    tft.setTextColor(COLOR_ACCENT);
-    tft.print("Tap ");
-    tft.print(target);
-    tft.print("x");
-
     while (count < target) {
       if (waitForButtonPress()) {
+        uint32_t now = millis();
+        if (now < lockUntil) {
+          drawStatus("Canceled", "Too fast");
+          delay(1200);
+          return;
+        }
         count++;
+        lockUntil = now + PRESS_COOLDOWN_MS;
         tft.fillRect(0, 152, SCREEN_W, 88, ST77XX_BLACK);
         drawPattern(idx, count, target);
       }
-      delay(10);
+      delay(5);
     }
-    delay(200);
+
+    // Between steps: if user taps during settle window, cancel.
+    uint32_t settleUntil = millis() + STEP_SETTLE_MS;
+    while (millis() < settleUntil) {
+      if (waitForButtonPress()) {
+        drawStatus("Canceled", "Wait between taps");
+        delay(1200);
+        return;
+      }
+      delay(5);
+    }
   }
 
   drawStatus("Sending...", requestId);
@@ -262,6 +303,8 @@ void loop() {
   bool postOk = httpPostJson(respondUrl, body, resp, &httpCode);
   if (!postOk) {
     String line2 = String("HTTP ") + String(httpCode);
+    String hint = httpCodeHint(httpCode);
+    if (hint.length() > 0) line2 = hint;
     drawStatus("Error", "Send failed", line2.c_str());
     delay(1500);
     return;
