@@ -31,6 +31,16 @@ export default function DeviceApprovalsPage() {
 
   const canCreate = useMemo(() => /^0x[0-9a-fA-F]{64}$/.test(userOpHash), [userOpHash]);
 
+  async function safeJson(res: Response): Promise<any> {
+    const text = await res.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: "Non-JSON response from server", raw: text };
+    }
+  }
+
   async function createRequest() {
     setStatus(null);
     const res = await fetch("/api/requests/new", {
@@ -44,7 +54,7 @@ export default function DeviceApprovalsPage() {
         userOpHash
       })
     });
-    const json = await res.json();
+    const json = await safeJson(res);
     setRequestId(json.requestId);
   }
 
@@ -71,7 +81,7 @@ export default function DeviceApprovalsPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ requestId })
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "send failed");
       setAaMsg(`UserOp sent: ${json.bundlerUserOpHash}`);
     } catch (e: any) {
@@ -91,7 +101,7 @@ export default function DeviceApprovalsPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ requestId })
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "execute failed");
       setAaMsg(`Executed: ${json.txHash}`);
     } catch (e: any) {
