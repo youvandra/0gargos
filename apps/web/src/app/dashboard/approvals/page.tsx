@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type RequestStatus =
   | { status: "pending"; requestId: string }
-  | { status: "approved"; requestId: string; deviceSignature: string; storageRootHash?: string }
+  | { status: "approved"; requestId: string; deviceSignature: string; storageRootHash?: string; storageTxHash?: string }
   | { status: "denied"; requestId: string }
   | { status: "not_found" };
 
@@ -137,4 +137,3 @@ export default function DeviceApprovalsPage() {
     </div>
   );
 }
-

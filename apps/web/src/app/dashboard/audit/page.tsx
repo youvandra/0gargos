@@ -9,6 +9,7 @@ type Row = {
   userOpHash: string;
   deviceSignature?: string;
   storageRootHash?: string;
+  storageTxHash?: string;
   createdAt: number;
 };
 
@@ -68,7 +69,28 @@ export default function AuditLogPage() {
                 <div className="hidden md:block text-sm text-black/70">{r.deviceId}</div>
                 <div className="min-w-0">
                   {r.storageRootHash ? (
-                    <div className="font-mono text-[11px] truncate">{r.storageRootHash}</div>
+                    <div className="space-y-1">
+                      <a
+                        className="block font-mono text-[11px] truncate text-black/80 hover:underline"
+                        href="https://storagescan-galileo.0g.ai/"
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open 0G Storage Scan (Galileo)"
+                      >
+                        {r.storageRootHash}
+                      </a>
+                      {r.storageTxHash ? (
+                        <a
+                          className="block font-mono text-[11px] truncate text-black/60 hover:underline"
+                          href={`https://chainscan-galileo.0g.ai/tx/${r.storageTxHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="View on 0G ChainScan"
+                        >
+                          tx: {r.storageTxHash}
+                        </a>
+                      ) : null}
+                    </div>
                   ) : (
                     <div className="text-sm text-black/40">—</div>
                   )}
@@ -83,4 +105,3 @@ export default function AuditLogPage() {
     </div>
   );
 }
-

@@ -11,9 +11,9 @@ export async function GET() {
       userOpHash: r.userOpHash,
       deviceSignature: r.deviceSignature,
       storageRootHash: r.storageRootHash,
+      storageTxHash: r.storageTxHash,
       createdAt: r.createdAt
     }));
 
   return NextResponse.json({ rows });
 }
-

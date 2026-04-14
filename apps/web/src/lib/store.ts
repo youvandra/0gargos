@@ -8,6 +8,7 @@ export type ApprovalRequest = {
   status: "pending" | "approved" | "denied";
   deviceSignature?: string;
   storageRootHash?: string;
+  storageTxHash?: string;
   createdAt: number;
 };
 
@@ -24,4 +25,3 @@ export function getStore(): Map<string, ApprovalRequest> {
 export function createId(prefix = "req"): string {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
-

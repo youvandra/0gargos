@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "approved",
     requestId,
     deviceSignature: rec.deviceSignature,
-    storageRootHash: rec.storageRootHash
+    storageRootHash: rec.storageRootHash,
+    storageTxHash: rec.storageTxHash
   });
 }
-

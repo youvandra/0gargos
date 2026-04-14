@@ -41,12 +41,17 @@ export async function POST(req: Request) {
       ts: Date.now()
     });
     if (upload?.rootHash) rec.storageRootHash = upload.rootHash;
+    if (upload?.txHash) rec.storageTxHash = upload.txHash;
   } catch (e) {
     // Don't fail the approval flow if Storage upload fails in MVP.
     console.error("0G Storage upload failed:", e);
   }
 
   getStore().set(requestId, rec);
-  return NextResponse.json({ ok: true, status: "approved", storageRootHash: rec.storageRootHash ?? null });
+  return NextResponse.json({
+    ok: true,
+    status: "approved",
+    storageRootHash: rec.storageRootHash ?? null,
+    storageTxHash: rec.storageTxHash ?? null
+  });
 }
-
