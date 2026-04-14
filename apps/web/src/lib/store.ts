@@ -5,6 +5,11 @@ export type ApprovalRequest = {
   details1: string;
   details2: string;
   userOpHash: string; // 0x + 32 bytes
+  // on-chain gated action (no-bundler mode)
+  actionTarget?: string;
+  actionValueWei?: string; // decimal string
+  actionData?: string; // hex calldata
+  actionHash?: string; // bytes32
   status: "pending" | "approved" | "denied";
   deviceSignature?: string;
   storageRootHash?: string;

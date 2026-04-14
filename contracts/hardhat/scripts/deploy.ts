@@ -34,6 +34,13 @@ async function main() {
   const demoAddress = await demo.getAddress();
   console.log("ArgosDemo:", demoAddress);
 
+  // 4) Deploy ArgosGateway (no-bundler mode): backend publishes approvals + executes calls
+  const Gateway = await ethers.getContractFactory("ArgosGateway");
+  const gateway = await Gateway.deploy(deviceAddress, deployer.address);
+  await gateway.waitForDeployment();
+  const gatewayAddress = await gateway.getAddress();
+  console.log("ArgosGateway:", gatewayAddress);
+
   console.log("\nNext:");
   console.log(
     "- Fund the bundler/executor wallet(s) and deployer wallet with testnet 0G.\n" +

@@ -75,6 +75,26 @@ export default function DeviceApprovalsPage() {
     }
   }
 
+  async function executeOnChain() {
+    if (!requestId) return;
+    setAaSending(true);
+    setAaMsg(null);
+    try {
+      const res = await fetch("/api/onchain/execute", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requestId })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "execute failed");
+      setAaMsg(`Executed: ${json.txHash}`);
+    } catch (e: any) {
+      setAaMsg(e.message ?? String(e));
+    } finally {
+      setAaSending(false);
+    }
+  }
+
   async function checkReceipt() {
     if (!requestId) return;
     const res = await fetch(`/api/aa/receipt?requestId=${requestId}`);
@@ -168,11 +188,11 @@ export default function DeviceApprovalsPage() {
             )}
             <div className="pt-2 flex flex-wrap gap-2">
               <button
-                onClick={sendUserOp}
+                onClick={executeOnChain}
                 disabled={aaSending}
                 className="inline-flex items-center justify-center rounded-lg bg-black px-4 py-2 text-white text-sm disabled:opacity-40"
               >
-                {aaSending ? "Sending..." : "Send UserOp via bundler"}
+                {aaSending ? "Sending..." : "Execute on-chain"}
               </button>
               <button
                 onClick={checkReceipt}
