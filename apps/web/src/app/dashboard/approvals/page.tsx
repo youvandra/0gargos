@@ -4,7 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 
 type RequestStatus =
   | { status: "pending"; requestId: string }
-  | { status: "approved"; requestId: string; deviceSignature: string; storageRootHash?: string; storageTxHash?: string }
+  | {
+      status: "approved";
+      requestId: string;
+      deviceSignature: string;
+      storageRootHash?: string;
+      storageTxHash?: string;
+      aaUserOpHash?: string;
+      aaTxHash?: string;
+      aaStatus?: string;
+    }
   | { status: "denied"; requestId: string }
   | { status: "not_found" };
 
@@ -17,6 +26,8 @@ export default function DeviceApprovalsPage() {
 
   const [requestId, setRequestId] = useState<string | null>(null);
   const [status, setStatus] = useState<RequestStatus | null>(null);
+  const [aaSending, setAaSending] = useState(false);
+  const [aaMsg, setAaMsg] = useState<string | null>(null);
 
   const canCreate = useMemo(() => /^0x[0-9a-fA-F]{64}$/.test(userOpHash), [userOpHash]);
 
@@ -43,6 +54,34 @@ export default function DeviceApprovalsPage() {
     timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [requestId]);
+
+  async function sendUserOp() {
+    if (!requestId) return;
+    setAaSending(true);
+    setAaMsg(null);
+    try {
+      const res = await fetch("/api/aa/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requestId })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "send failed");
+      setAaMsg(`UserOp sent: ${json.bundlerUserOpHash}`);
+    } catch (e: any) {
+      setAaMsg(e.message ?? String(e));
+    } finally {
+      setAaSending(false);
+    }
+  }
+
+  async function checkReceipt() {
+    if (!requestId) return;
+    const res = await fetch(`/api/aa/receipt?requestId=${requestId}`);
+    const json = await res.json();
+    if (json?.txHash) setAaMsg(`Mined: ${json.txHash}`);
+    else setAaMsg("Pending...");
+  }
 
   return (
     <div className="space-y-6">
@@ -127,6 +166,33 @@ export default function DeviceApprovalsPage() {
             {status.storageRootHash && (
               <div className="text-xs font-mono break-all">storageRootHash: {status.storageRootHash}</div>
             )}
+            <div className="pt-2 flex flex-wrap gap-2">
+              <button
+                onClick={sendUserOp}
+                disabled={aaSending}
+                className="inline-flex items-center justify-center rounded-lg bg-black px-4 py-2 text-white text-sm disabled:opacity-40"
+              >
+                {aaSending ? "Sending..." : "Send UserOp via bundler"}
+              </button>
+              <button
+                onClick={checkReceipt}
+                className="inline-flex items-center justify-center rounded-lg border border-black/10 px-4 py-2 text-black text-sm"
+              >
+                Check receipt
+              </button>
+            </div>
+            {status.aaUserOpHash && <div className="text-xs font-mono break-all">aaUserOpHash: {status.aaUserOpHash}</div>}
+            {status.aaTxHash && (
+              <a
+                className="text-xs font-mono break-all hover:underline"
+                href={`https://chainscan-galileo.0g.ai/tx/${status.aaTxHash}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                tx: {status.aaTxHash}
+              </a>
+            )}
+            {aaMsg && <div className="text-xs text-black/60">{aaMsg}</div>}
           </div>
         ) : status?.status === "denied" ? (
           <div className="text-sm text-black/60">Denied: {requestId}</div>

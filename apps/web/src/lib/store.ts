@@ -9,6 +9,10 @@ export type ApprovalRequest = {
   deviceSignature?: string;
   storageRootHash?: string;
   storageTxHash?: string;
+  aaSender?: string;
+  aaUserOpHash?: string;
+  aaTxHash?: string;
+  aaStatus?: "not_sent" | "sent" | "mined" | "failed";
   createdAt: number;
 };
 

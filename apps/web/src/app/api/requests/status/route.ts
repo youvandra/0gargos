@@ -17,6 +17,9 @@ export async function GET(req: Request) {
     requestId,
     deviceSignature: rec.deviceSignature,
     storageRootHash: rec.storageRootHash,
-    storageTxHash: rec.storageTxHash
+    storageTxHash: rec.storageTxHash,
+    aaUserOpHash: rec.aaUserOpHash,
+    aaTxHash: rec.aaTxHash,
+    aaStatus: rec.aaStatus ?? "not_sent"
   });
 }

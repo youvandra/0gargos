@@ -10,6 +10,9 @@ type Row = {
   deviceSignature?: string;
   storageRootHash?: string;
   storageTxHash?: string;
+  aaUserOpHash?: string;
+  aaTxHash?: string;
+  aaStatus?: string;
   createdAt: number;
 };
 
@@ -48,17 +51,18 @@ export default function AuditLogPage() {
       </div>
 
       <div className="rounded-xl border border-black/10 overflow-hidden">
-        <div className="grid grid-cols-[1.2fr_.7fr_.7fr] md:grid-cols-[1.3fr_.8fr_.8fr_1fr] gap-3 px-5 py-3 border-b border-black/10 text-xs uppercase tracking-wider text-black/40">
+        <div className="grid grid-cols-[1.2fr_.7fr_.7fr] md:grid-cols-[1.2fr_.7fr_.7fr_1fr_1fr] gap-3 px-5 py-3 border-b border-black/10 text-xs uppercase tracking-wider text-black/40">
           <div>Request</div>
           <div>Status</div>
           <div className="hidden md:block">Device</div>
           <div>Storage</div>
+          <div className="hidden md:block">AA Tx</div>
         </div>
 
         <div className="divide-y divide-black/10">
           {rows.length ? (
             rows.map((r) => (
-              <div key={r.requestId} className="grid grid-cols-[1.2fr_.7fr_.7fr] md:grid-cols-[1.3fr_.8fr_.8fr_1fr] gap-3 px-5 py-4">
+              <div key={r.requestId} className="grid grid-cols-[1.2fr_.7fr_.7fr] md:grid-cols-[1.2fr_.7fr_.7fr_1fr_1fr] gap-3 px-5 py-4">
                 <div className="min-w-0">
                   <div className="font-mono text-xs truncate">{r.requestId}</div>
                   <div className="font-mono text-[11px] text-black/50 truncate">{r.userOpHash}</div>
@@ -91,6 +95,20 @@ export default function AuditLogPage() {
                         </a>
                       ) : null}
                     </div>
+                  ) : (
+                    <div className="text-sm text-black/40">—</div>
+                  )}
+                </div>
+                <div className="hidden md:block min-w-0">
+                  {r.aaTxHash ? (
+                    <a
+                      className="block font-mono text-[11px] truncate text-black/70 hover:underline"
+                      href={`https://chainscan-galileo.0g.ai/tx/${r.aaTxHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {r.aaTxHash}
+                    </a>
                   ) : (
                     <div className="text-sm text-black/40">—</div>
                   )}

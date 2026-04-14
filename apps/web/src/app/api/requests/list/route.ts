@@ -12,6 +12,9 @@ export async function GET() {
       deviceSignature: r.deviceSignature,
       storageRootHash: r.storageRootHash,
       storageTxHash: r.storageTxHash,
+      aaUserOpHash: r.aaUserOpHash,
+      aaTxHash: r.aaTxHash,
+      aaStatus: r.aaStatus ?? "not_sent",
       createdAt: r.createdAt
     }));
 

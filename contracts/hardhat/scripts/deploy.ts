@@ -27,6 +27,13 @@ async function main() {
   const factoryAddress = await factory.getAddress();
   console.log("Device2FAAccountFactory:", factoryAddress);
 
+  // 3) Deploy demo target (called via account.execute)
+  const Demo = await ethers.getContractFactory("ArgosDemo");
+  const demo = await Demo.deploy();
+  await demo.waitForDeployment();
+  const demoAddress = await demo.getAddress();
+  console.log("ArgosDemo:", demoAddress);
+
   console.log("\nNext:");
   console.log(
     "- Fund the bundler/executor wallet(s) and deployer wallet with testnet 0G.\n" +
@@ -39,4 +46,3 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
-
