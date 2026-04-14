@@ -36,7 +36,9 @@ async function main() {
 
   // 4) Deploy ArgosGateway (no-bundler mode): backend publishes approvals + executes calls
   const Gateway = await ethers.getContractFactory("ArgosGateway");
-  const gateway = await Gateway.deploy(deviceAddress, deployer.address);
+  // In MVP no-bundler mode, the backend relayer/executor is the "approver" too.
+  // The device address is recorded inside the approval payload (off-chain) for now.
+  const gateway = await Gateway.deploy(deployer.address, deployer.address);
   await gateway.waitForDeployment();
   const gatewayAddress = await gateway.getAddress();
   console.log("ArgosGateway:", gatewayAddress);

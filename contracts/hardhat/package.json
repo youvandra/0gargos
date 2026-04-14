@@ -5,7 +5,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat run scripts/deploy.ts --network og_galileo"
+    "deploy": "hardhat run scripts/deploy.ts --network og_galileo",
+    "gateway:set-roles": "hardhat run scripts/gateway-set-roles.ts --network og_galileo"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",
